@@ -1,0 +1,108 @@
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
+import { defu } from 'defu';
+import { defineNuxtModule, createResolver, checkNuxtCompatibility, addPlugin, addImportsDir, addComponentsDir, extendPages } from '@nuxt/kit';
+
+const module = defineNuxtModule({
+  meta: {
+    name: "nuxt-typo3",
+    configKey: "typo3"
+  },
+  defaults: {
+    api: {
+      baseUrl: "https://api.t3pwa.com",
+      headers: {},
+      credentials: "omit",
+      proxyHeaders: false,
+      proxyReqHeaders: false,
+      endpoints: {
+        initialData: "/?type=834",
+        initialDataFallback: "/?type=834"
+      },
+      allowQuery: true
+    },
+    i18n: {
+      default: "en",
+      locales: ["en"]
+    },
+    features: {
+      initInitialData: true,
+      i18nMiddleware: true,
+      debug: false
+    }
+  },
+  hooks: {
+    "t3:initialData": () => {
+    },
+    "t3:page": () => {
+    },
+    "t3:i18n": () => {
+    },
+    "components:dirs"(dirs) {
+      dirs.push({
+        path: fileURLToPath(new URL("./runtime/components", import.meta.url)),
+        extensions: ["vue"],
+        pathPrefix: false,
+        ignore: ["**/*.types.ts"],
+        global: true,
+        extendComponent: (component) => {
+          component.priority = -1;
+          return component;
+        }
+      });
+    }
+  },
+  async setup(options, nuxt) {
+    const runtimeDir = fileURLToPath(new URL("./runtime", import.meta.url));
+    const resolver = createResolver(import.meta.url);
+    const issues = await checkNuxtCompatibility({
+      nuxt: ">=4.0.0"
+    }, nuxt);
+    const useLegacyAsyncDataPageKey = issues.length > 0;
+    nuxt.options.pages = true;
+    nuxt.options.alias["#typo3"] = resolve(runtimeDir);
+    nuxt.options.build.transpile.push(runtimeDir);
+    if (options.sites) {
+      options = {
+        sites: mergeSiteOptions(options)
+      };
+    }
+    nuxt.options.runtimeConfig.public.typo3 = defu(
+      nuxt.options.runtimeConfig.public.typo3,
+      options
+    );
+    nuxt.options.runtimeConfig.public.typo3Internals = {
+      useLegacyAsyncDataPageKey
+    };
+    addPlugin(resolve(runtimeDir, "plugin"));
+    addImportsDir(resolver.resolve("runtime/composables/**/*"));
+    addImportsDir(resolver.resolve("runtime/components/**/*"));
+    addComponentsDir({
+      path: fileURLToPath(new URL("./runtime/components", import.meta.url)),
+      extensions: ["vue"],
+      pathPrefix: false,
+      ignore: ["**/*.types.ts"],
+      global: true
+    });
+    extendPages((pages) => {
+      pages.push({
+        name: "page",
+        path: "/:slug(.*)*",
+        file: resolver.resolve("./runtime/pages/T3Page.vue")
+      });
+    });
+  }
+});
+const mergeSiteOptions = (options) => {
+  return options.sites?.map((site) => {
+    const defaulOptions = { ...options };
+    delete defaulOptions.sites;
+    const siteOptions = defu(site, defaulOptions);
+    if (site.i18n?.locales) {
+      siteOptions.i18n.locales = [.../* @__PURE__ */ new Set([...defaulOptions.i18n.locales, ...site.i18n?.locales])];
+    }
+    return siteOptions;
+  });
+};
+
+export { module as default };

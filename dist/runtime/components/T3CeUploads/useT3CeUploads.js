@@ -1,0 +1,13 @@
+import { useT3Options } from "../../composables/useT3Options.js";
+export const useT3CeUploads = () => {
+  const { currentSiteOptions } = useT3Options();
+  const baseUrl = currentSiteOptions.value?.api.baseUrl;
+  const getExtensionImg = (extension) => {
+    return `${baseUrl}/typo3/sysext/frontend/Resources/Public/Icons/FileIcons/${extension}.gif`;
+  };
+  const onError = (event) => {
+    const element = event.target;
+    element.src = getExtensionImg("default");
+  };
+  return { getExtensionImg, onError };
+};

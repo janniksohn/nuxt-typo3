@@ -1,0 +1,32 @@
+import { cleanDoubleSlashes, hasProtocol } from "ufo";
+import { navigateTo, useNuxtApp } from "#app";
+import { useT3i18nState } from "./useT3i18n.js";
+import { useT3Options } from "./useT3Options.js";
+import layouts from "#build/layouts";
+export const useT3Utils = () => {
+  const nuxtApp = useNuxtApp();
+  const currentLocale = useT3i18nState();
+  const { currentSiteOptions } = useT3Options();
+  const redirect = async (redirectData) => {
+    await nuxtApp.callHook("t3:redirect", redirectData);
+    const { redirectUrl, statusCode } = redirectData;
+    const isExternal = hasProtocol(redirectUrl, { acceptRelative: true });
+    return await nuxtApp.runWithContext(() => navigateTo(redirectUrl, {
+      redirectCode: statusCode,
+      external: isExternal,
+      replace: true
+    }));
+  };
+  const localePath = (path) => {
+    const { i18n } = currentSiteOptions.value;
+    const code = i18n.default === currentLocale.value ? "" : currentLocale.value;
+    return cleanDoubleSlashes(`/${code}${path ? `/${path}` : ""}`);
+  };
+  return {
+    redirect,
+    localePath
+  };
+};
+export const hasLayout = (name = "default") => {
+  return name in layouts;
+};
