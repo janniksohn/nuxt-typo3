@@ -22,7 +22,8 @@
     "dist"
   ],
   "scripts": {
-    "prepack": "nuxt-module-build build",
+    "build": "nuxt-module-build build",
+    "prepack": "pnpm run build",
     "dev": "nuxi dev playground",
     "dev:build": "nuxi build playground",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
@@ -31,7 +32,7 @@
     "prerelease": "pnpm test && npx standard-version --prerelease alpha && git push --follow-tags && npm publish --tag alpha",
     "release": "pnpm test && npx standard-version && git push --follow-tags && npm publish",
     "commitlint": "commitlint --verbose",
-    "prepare": "husky"
+    "prepare": "nuxt-module-build build || true; husky || true"
   },
   "dependencies": {
     "defu": "^6.1.4",
