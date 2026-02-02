@@ -2,35 +2,41 @@ import type { FetchOptions } from 'ofetch'
 import type { Ref } from 'vue'
 import { useState, useNuxtApp, useRoute, useRuntimeConfig } from '#app'
 import { hash } from 'ohash'
-import type { T3InitialData, T3Page } from '../../module'
+import type { T3InitialData, T3Page, T3FetchOptions } from '../../module'
 import type { T3Api } from '../lib/apiClient'
 
 /**
  * Get page data state
- * @returns {Ref<T3Page>}
+ * Nuxt 4: Using undefined-safe initialization pattern
+ * @returns {Ref<T3Page | null>}
  */
 export const useT3PageState = () => {
-  const pageState = useState<T3Page | null>('T3:Page')
+  const pageState = useState<T3Page | null>('T3:Page', () => null)
   return pageState
 }
 
 /**
  * Get initial data state
+ * Nuxt 4: Using undefined-safe initialization pattern
  * @returns {Ref<T3InitialData>}
  */
 export const useT3InitialDataState = () => {
-  const initialDataState = useState<T3InitialData>('T3:InitialData')
+  const initialDataState = useState<T3InitialData>('T3:InitialData', () => ({
+    navigation: [],
+    i18n: []
+  }))
   return initialDataState
 }
 
 /**
  * Use API client as composable
+ * Nuxt 4 compatible with abort signal support
  * @param {String} path
- * @param {FetchOptions} options
+ * @param {T3FetchOptions} options
  */
 export const useT3Api = (
   path?: string,
-  options?: FetchOptions<'json'>
+  options?: T3FetchOptions
 ): {
   /**
    * TYPO3 Page Data
@@ -46,8 +52,9 @@ export const useT3Api = (
   $fetch: T3Api['$fetch']
   /**
    * Get TYPO3 Page data
+   * Supports abort signal for request cancellation (Nuxt 4)
    */
-  getPage(path: string, options?: FetchOptions): Promise<T3Page>
+  getPage(path: string, options?: T3FetchOptions): Promise<T3Page>
   /**
    * Get unique cache key for TYPO3 page data based on route full path.
    * Falls back to a static key if Nuxt version < 3.17.0 (changed useAsyncData implementation).
@@ -55,8 +62,9 @@ export const useT3Api = (
   getPageKey(fullPath?: string): string
   /**
    * Get TYPO3 Initial data
+   * Supports abort signal for request cancellation (Nuxt 4)
    */
-  getInitialData(path?: string, options?: FetchOptions): Promise<T3InitialData>
+  getInitialData(path?: string, options?: T3FetchOptions): Promise<T3InitialData>
   /**
    * Set API Headers
    */
@@ -69,21 +77,25 @@ export const useT3Api = (
   const app = useNuxtApp()
   const { $typo3, callHook } = app
   const defaultPath = path || useRoute().fullPath
-  const defaultOptions = options!
+  const defaultOptions = options ?? {}
   const pageData = useT3PageState()
   const initialData = useT3InitialDataState()
   const useLegacyAsyncDataPageKey = useRuntimeConfig().public.typo3Internals?.useLegacyAsyncDataPageKey
 
   const $fetch = async <T>(
     path: RequestInfo = defaultPath,
-    options: FetchOptions<'json'> = defaultOptions
+    options: T3FetchOptions = defaultOptions
   ): Promise<T> => {
     return await $typo3.api.$fetch(path, options)
   }
 
+  /**
+   * Get TYPO3 Page data
+   * Nuxt 4: Supports abort signal for request cancellation during navigation
+   */
   const getPage = async (
     path: string = defaultPath,
-    options: FetchOptions<'json'> = defaultOptions
+    options: T3FetchOptions = defaultOptions
   ) => {
     const pageData = await $typo3.api.getPage(path, options)
     await callHook('t3:page', pageData)
@@ -96,9 +108,13 @@ export const useT3Api = (
       : `t3:page:${hash(fullPath)}`
   }
 
+  /**
+   * Get TYPO3 Initial data
+   * Nuxt 4: Supports abort signal for request cancellation during navigation
+   */
   const getInitialData = async (
     path: string = defaultPath,
-    options: FetchOptions<'json'> = defaultOptions
+    options: T3FetchOptions = defaultOptions
   ) => {
     const initialData = await $typo3.api.getInitialData(path, options)
     await callHook('t3:initialData', initialData)
