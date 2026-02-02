@@ -22,11 +22,20 @@ export const useT3Page = async (options: {
 
   const pageCacheKey = computed(() => getPageKey(route.fullPath))
 
+  /**
+   * Nuxt 4 changes:
+   * - `deep: true` is required because shallow reactivity is now the default
+   *   This ensures nested page data changes trigger Vue reactivity
+   * - Handler receives abort signal for request cancellation on navigation
+   * - `default` provides consistent initial value (Nuxt 4 defaults to undefined)
+   */
   const { data, execute: getAsyncPage, error } = useAsyncData(
     useLegacyAsyncDataPageKey ? pageCacheKey.value : pageCacheKey,
-    () => getPage(route.fullPath),
+    ({ signal }) => getPage(route.fullPath, { signal }),
     {
-      immediate: false
+      immediate: false,
+      deep: true,
+      default: () => null as T3Page | null
     }
   )
 
@@ -60,11 +69,15 @@ export const useT3Page = async (options: {
     }
   }
 
-  const pageDataFallback = computed<T3Page | null>(() => {
+  /**
+   * Nuxt 4: pageDataFallback returns undefined instead of null for consistency
+   * with useAsyncData default behavior
+   */
+  const pageDataFallback = computed<T3Page | undefined>(() => {
     const error = useError()
 
     if (!error.value || !('data' in error.value)) {
-      return null
+      return undefined
     }
 
     try {
@@ -73,7 +86,7 @@ export const useT3Page = async (options: {
       }
       return error.value.data
     } catch {
-      return null
+      return undefined
     }
   })
 

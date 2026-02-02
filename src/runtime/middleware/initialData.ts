@@ -6,6 +6,11 @@ import { useT3Api } from '../composables/useT3Api'
 import { useT3Options } from '../composables/useT3Options'
 import { useT3i18n } from '../composables/useT3i18n'
 
+/**
+ * Initial Data Middleware
+ * Nuxt 4 compatible - fetches site-wide initial data before page render
+ */
+
 async function fetchInitialData (to: RouteLocationNormalized) {
   const { initialData, getInitialData } = useT3Api(to.fullPath)
   const { currentSiteOptions } = useT3Options()
@@ -94,6 +99,11 @@ async function fetchInitialData (to: RouteLocationNormalized) {
   }
 }
 
+/**
+ * Middleware entry point
+ * Nuxt 4: Uses callOnce to ensure initial data is fetched only once per navigation
+ * This prevents duplicate requests and ensures consistent state
+ */
 export async function t3initialDataMiddleware (to: RouteLocationNormalized) {
   await callOnce('t3:initialData', async () => await fetchInitialData(to))
 }

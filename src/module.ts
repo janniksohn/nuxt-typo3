@@ -74,9 +74,20 @@ export default defineNuxtModule<ModuleOptions>({
   async setup (options, nuxt) {
     const runtimeDir = fileURLToPath(new URL('./runtime', import.meta.url))
     const resolver = createResolver(import.meta.url)
+
+    /**
+     * Nuxt 4 compatibility check
+     * This module requires Nuxt 4.0.0+ for:
+     * - useAsyncData with abort signal support
+     * - Shallow reactivity default (handled with deep: true)
+     * - Reactive keys support in useAsyncData
+     */
     const issues = await checkNuxtCompatibility({
-      nuxt: '>=3.17.0'
+      nuxt: '>=4.0.0'
     }, nuxt)
+
+    // For backwards compatibility with older Nuxt versions, use legacy key
+    // Nuxt 4+ supports reactive keys, so we use hashed keys per-page
     const useLegacyAsyncDataPageKey = issues.length > 0
 
     nuxt.options.pages = true

@@ -1,3 +1,4 @@
+import type { FetchOptions } from 'ofetch'
 import type { T3ContentElement } from './T3ContentElement'
 import type { T3CeBaseProps } from './content'
 import type { T3Link } from './T3Link'
@@ -11,6 +12,19 @@ export * from './T3Appearance'
 export * from './T3ContentElement'
 export * from './T3BackendLayout'
 export * from './content'
+
+/**
+ * Extended fetch options with abort signal support
+ * Nuxt 4: useAsyncData handler receives an abort signal for request cancellation
+ * This allows proper cleanup when navigation occurs during a pending request
+ */
+export interface T3FetchOptions extends FetchOptions<'json'> {
+  /**
+   * AbortSignal for request cancellation
+   * Passed automatically by useAsyncData in Nuxt 4 for navigation handling
+   */
+  signal?: AbortSignal
+}
 
 export interface T3Site {
   /**
